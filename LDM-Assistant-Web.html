@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LDM Assistant Web</title>
+    <!-- PWA Setup (Manifest and Meta tags) -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="LDM Web">
+
+    <!-- Service Worker for Offline Mode -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful');
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+    <!-- Modern Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Boxicons for modern icons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <style>
+        :root {
+            --bg-base: #0f172a;
+            --bg-panel: rgba(30, 41, 59, 0.7);
+            --border-light: rgba(255, 255, 255, 0.08);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-blur: blur(12px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            /* Prevent selection on mobile */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-base);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            height: 100vh;
+            /* Fallback for older browsers */
+            height: 100dvh;
+            /* Dynamic viewport height for mobile browsers */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            /* App-like feel */
+        }
+
+        /* --- Header / Status Area --- */
+        .header {
+            padding: calc(24px + env(safe-area-inset-top)) 20px 16px;
+            background: var(--bg-panel);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 99px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-light);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--danger);
+            box-shadow: 0 0 10px var(--danger);
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.connected {
+            background-color: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        .status-dot.connecting {
+            background-color: var(--warning);
+            box-shadow: 0 0 10px var(--warning);
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.5;
+                transform: scale(0.9);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1.1);
+            }
+        }
+
+        /* --- Main Content Area (List) --- */
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .empty-state {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            gap: 12px;
+            opacity: 0.8;
+            text-align: center;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 8px;
+        }
+
+        .measurement-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .measurement-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-light);
+            padding: 16px;
+            border-radius: 16px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .item-index {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .item-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+
+        .item-unit {
+            font-size: 16px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .item-time {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* --- Footer / Controls Area --- */
+        .footer {
+            padding: 16px 20px calc(24px + env(safe-area-inset-bottom));
+            background: var(--bg-panel);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        .button-group-row {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+        }
+
+        .btn {
+            flex: 1;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--border-light);
+        }
+
+        /* Utilities */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="status-pill" id="status-container">
+            <div class="status-dot" id="status-dot"></div>
+            <span id="status-text">Disconnected</span>
+        </div>
+
+        <div class="button-group-row">
+            <button id="btn-connect" class="btn btn-primary" onclick="connectToDevice()">
+                <i class='bx bx-bluetooth'></i> Connect LDM
+            </button>
+            <button id="btn-disconnect" class="btn btn-danger hidden" onclick="disconnectDevice()">
+                <i class='bx bx-x'></i> Disconnect
+            </button>
+            <button id="btn-measure" class="btn btn-secondary" onclick="remoteMeasure()" disabled>
+                <i class='bx bx-target-lock'></i> Measure
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content" id="content-area">
+        <div class="empty-state" id="empty-state">
+            <i class='bx bx-ruler'></i>
+            <h3>No Measurements Yet</h3>
+            <p style="font-size: 14px;">Connect to your Laser Distance Meter<br>to start receiving data.</p>
+        </div>
+        <div class="measurement-list" id="measurement-list">
+            <!-- Items injected here by JS -->
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="button-group-row">
+            <button class="btn btn-secondary" onclick="clearData()">
+                <i class='bx bx-trash'></i> Clear
+            </button>
+            <button class="btn btn-success" onclick="shareCSV()">
+                <i class='bx bx-export'></i> Export / Share
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- Web Bluetooth Variables ---
+        let targetDevice = null;
+        let targetServer = null;
+        let writeCharacteristic = null;
+        let notifyCharacteristic = null;
+
+        const SERVICE_UUID = "0000f150-0000-1000-8000-00805f9b34fb";
+        const WRITE_UUID = "0000f151-0000-1000-8000-00805f9b34fb";
+        const NOTIFY_UUID = "0000f154-0000-1000-8000-00805f9b34fb";
+        const HANDSHAKE = new Uint8Array([0x03, 0x0D, 0x0A, 0x03, 0x0D, 0x0A]);
+
+        // Command to measure (13 bytes as calculated in python)
+        const MEASURE_CMD = new Uint8Array([0x23, 0x0A, 0x6D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x9A]);
+
+        // --- App Data ---
+        let measurements = [];
+
+        // --- UI Updates ---
+        const uiStatusDot = document.getElementById('status-dot');
+        const uiStatusText = document.getElementById('status-text');
+        const btnConnect = document.getElementById('btn-connect');
+        const btnDisconnect = document.getElementById('btn-disconnect');
+        const btnMeasure = document.getElementById('btn-measure');
+        const contentArea = document.getElementById('content-area');
+        const emptyState = document.getElementById('empty-state');
+        const measurementList = document.getElementById('measurement-list');
+
+        function setStatus(text, state) {
+            uiStatusText.textContent = text;
+            uiStatusDot.className = 'status-dot';
+            if (state) uiStatusDot.classList.add(state); // 'connected', 'connecting'
+        }
+
+        // --- Bluetooth Logic ---
+        async function connectToDevice() {
+            if (!navigator.bluetooth) {
+                alert('Web Bluetooth is not supported by your browser.\nPlease use Chrome on Android or Mac/Windows.');
+                return;
+            }
+
+            try {
+                setStatus('Scanning...', 'connecting');
+
+                // Prompt user to select ANY device to ensure LDM shows up, but we filter for the specific service UUID.
+                // We use acceptAllDevices to make sure it's discoverable even if name doesn't perfectly match.
+                targetDevice = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: [SERVICE_UUID]
+                });
+
+                targetDevice.addEventListener('gattserverdisconnected', onDisconnected);
+
+                setStatus('Connecting...', 'connecting');
+                targetServer = await targetDevice.gatt.connect();
+
+                setStatus('Setting up services...', 'connecting');
+                const service = await targetServer.getPrimaryService(SERVICE_UUID);
+
+                writeCharacteristic = await service.getCharacteristic(WRITE_UUID);
+                notifyCharacteristic = await service.getCharacteristic(NOTIFY_UUID);
+
+                await notifyCharacteristic.startNotifications();
+                notifyCharacteristic.addEventListener('characteristicvaluechanged', handleNotifications);
+
+                // Protocol handshake required after 0.5s
+                setTimeout(async () => {
+                    try {
+                        await writeCharacteristic.writeValue(HANDSHAKE);
+                        setStatus(`Connected: ${targetDevice.name}`, 'connected');
+                        updateControls(true);
+                    } catch (err) {
+                        console.error('Handshake error', err);
+                        setStatus('Handshake failed', '');
+                        targetDevice.gatt.disconnect();
+                    }
+                }, 500);
+
+            } catch (error) {
+                console.error('Connection failed:', error);
+                setStatus('Ready', '');
+                updateControls(false);
+            }
+        }
+
+        function onDisconnected() {
+            console.log('Device disconnected unexpectedly.');
+            setStatus('Disconnected', '');
+            updateControls(false);
+        }
+
+        function disconnectDevice() {
+            if (targetDevice && targetDevice.gatt.connected) {
+                targetDevice.gatt.disconnect();
+            }
+        }
+
+        function updateControls(isConnected) {
+            if (isConnected) {
+                btnConnect.classList.add('hidden');
+                btnDisconnect.classList.remove('hidden');
+                btnMeasure.disabled = false;
+            } else {
+                btnConnect.classList.remove('hidden');
+                btnDisconnect.classList.add('hidden');
+                btnMeasure.disabled = true;
+            }
+        }
+
+        async function remoteMeasure() {
+            if (writeCharacteristic) {
+                try {
+                    await writeCharacteristic.writeValue(MEASURE_CMD);
+                } catch (error) {
+                    console.error('Failed to send measure command', error);
+                }
+            }
+        }
+
+        // --- Data Handling ---
+        function handleNotifications(event) {
+            const value = event.target.value;
+            const decoder = new TextDecoder('ascii');
+            const rawStr = decoder.decode(value);
+
+            // Ignore error packets
+            if (rawStr.startsWith('Z') || rawStr.toLowerCase().includes('error')) {
+                return;
+            }
+
+            // Valid packets start with A or K
+            if (rawStr.length > 0 && (rawStr[0] === 'A' || rawStr[0] === 'K')) {
+                const match = rawStr.match(/\d+\.\d+/);
+                if (match) {
+                    addMeasurement(match[0]);
+                }
+            }
+        }
+
+        function addMeasurement(val) {
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' +
+                now.getMinutes().toString().padStart(2, '0') + ':' +
+                now.getSeconds().toString().padStart(2, '0');
+
+            measurements.push({ time: timeStr, value: val });
+            renderMeasurements();
+        }
+
+        function renderMeasurements() {
+            if (measurements.length === 0) {
+                emptyState.style.display = 'flex';
+                measurementList.innerHTML = '';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+            measurementList.innerHTML = '';
+
+            // Render in reverse to show newest first
+            [...measurements].reverse().forEach((item, revIdx) => {
+                const actualIndex = measurements.length - revIdx;
+
+                const el = document.createElement('div');
+                el.className = 'measurement-item';
+                el.innerHTML = `
+                    <div class="item-info">
+                        <span class="item-index">Measurement #${actualIndex}</span>
+                        <span class="item-value">${item.value} <span class="item-unit">m</span></span>
+                    </div>
+                    <div class="item-time">${item.time}</div>
+                `;
+                measurementList.appendChild(el);
+            });
+        }
+
+        function clearData() {
+            if (measurements.length === 0) return;
+            if (confirm('Clear all measurements?')) {
+                measurements = [];
+                renderMeasurements();
+            }
+        }
+
+        // --- Export & Share ---
+        async function shareCSV() {
+            if (measurements.length === 0) {
+                alert("No data to export!");
+                return;
+            }
+
+            let csvContent = "Index,Time,Measurement (m)\n";
+            measurements.forEach((row, index) => {
+                csvContent += `${index + 1},${row.time},${row.value}\n`;
+            });
+
+            const stamp = new Date().toISOString().replace(/[:\-T]/g, "").slice(0, 14);
+            const fileName = `LDM_Data_${stamp}.csv`;
+
+            // Try Web Share API (native share drawer on mobile)
+            if (navigator.canShare) {
+                try {
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const file = new File([blob], fileName, { type: 'text/csv' });
+
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'LDM Measurements',
+                            text: `Attached is the latest measurement data (${measurements.length} records).`
+                        });
+                        return; // Successfully shared
+                    }
+                } catch (err) {
+                    console.log('Share API failed or cancelled', err);
+                    // Fall back to direct download below
+                }
+            }
+
+            // Fallback for desktop / unsupported browsers
+            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Init UI
+        setStatus('Ready', '');
+    </script>
+</body>
+
+</html>
