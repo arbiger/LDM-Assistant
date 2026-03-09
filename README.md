@@ -3,6 +3,7 @@
   <h1>LDM Assistant Web | 專業雷射測距網頁助手</h1>
   <p>
     <b>Precaster Enterprises Co., LTD.</b><br />
+    仲陽企業有限公司<br />
     <a href="mailto:contact@precaster.com.tw">contact@precaster.com.tw</a>
   </p>
   <p>
@@ -89,12 +90,34 @@
   <li><b>數據管理</b>：點擊 <b>[Clear]</b> 可清空紀錄；點擊 <b>[Export / Share]</b> 可將清單匯出為 CSV 檔（Excel 可開啟）。</li>
 </ol>
 
+<hr />
+
+<h2>📂 Deployment & Structure | 部署與檔案結構</h2>
+<h3>Project Files (根目錄檔案清單)</h3>
+<p>為了確保 PWA 離線功能正常運作，您的 GitHub 儲存庫應包含以下檔案：</p>
+<ul>
+  <li><code>index.html</code>：主程式網頁。</li>
+  <li><code>manifest.json</code>：定義 App 圖示、名稱與顯示模式。</li>
+  <li><code>sw.js</code>：Service Worker 腳本，負責快取檔案以支援離線開啟。</li>
+  <li><code>icon.svg</code> 或 <code>icon.png</code>：App 的圖示檔案。</li>
+</ul>
+
+<h3>GitHub Pages Settings (設定說明)</h3>
+<ol>
+  <li>將檔案上傳至您的 GitHub Repository。</li>
+  <li>進入 <b>Settings</b> > <b>Pages</b>。</li>
+  <li>在 <b>Branch</b> 選擇 <code>main</code> 並點擊 <b>Save</b>。</li>
+  <li>稍等幾分鐘後，您的網頁將會佈署在 <code>https://&lt;username&gt;.github.io/&lt;repo-name&gt;/</code>。</li>
+</ol>
+
+<hr />
+
 <h3>⚠️ Troubleshooting | 疑難排解</h3>
 <ul>
   <li><b>Bluetooth not found? / 找不到藍牙？</b> Ensure your OS Bluetooth is ON and the web address starts with <code>https://</code>.<br />
     請確認系統藍牙已開啟，且網址必須以 <code>https://</code> 開頭。</li>
   <li><b>Auto-Input into Excel? / 自動輸入到 Excel？</b> This Web version is for <b>data logging</b>. For "Barcode Scanner Mode" (typing directly into cells), please use our <b>Windows Desktop Version</b>.<br />
-    網頁版主要用於**數據記錄**。若需要像條碼槍一樣直接打字進入 Excel 儲存格，請改用我們的 **Windows 桌面專業版**。</li>
+    網頁版主要用於**數據記錄**。若需要像條碼槍一樣直接打字進入 Excel 儲存格，請改用我們的 <b>Windows 桌面專業版</b>。</li>
 </ul>
 
 <hr />
